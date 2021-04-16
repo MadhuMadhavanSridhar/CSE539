@@ -7,6 +7,7 @@
 #include <math.h>       
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 using namespace std;
 
 unsigned char addition(unsigned char p1, unsigned char p2);
@@ -1365,13 +1366,161 @@ vector<vector<vector<unsigned char>>> CTRmodeDecrypt (vector<vector<unsigned cha
     
     return outText;
 }
+
+
+
+
+
+
+
+vector<vector<unsigned char>> insert128Hex(string hexInput){
+    //should look something like: 6bc1bee22e409f96e93d7e117393172a 
+    //128/4 = 32 char
+    string validChars = "0123456789abcdef";
+    vector<vector<unsigned char>> outputVector;
+    vector<unsigned char> columnVec;
+    string tempHex = "zz"; // should only be 2 letters long
+    unsigned int tempChar; // this is weird but it must be int instead of char for stringstream
+    std::stringstream ss;
     
+    //Validate input first
+    try {
+        if(hexInput.size()!= 32){
+            throw 3;
+        }
+        
+        for(int i = 0; i < 32; i++){
+            
+            if(validChars.find(hexInput[i]) == -1){
+                throw 1;
+            }
+            
+            else {
+                if(i % 2 == 0){
+                    tempHex[0] = hexInput[i];
+                    cout << tempHex[0] << endl;
+                }
+                
+                else {
+                    tempHex[1] = hexInput[i]; 
+                    cout << tempHex << endl;
+                    
+                    ss << tempHex;
+                    ss >> hex >> tempChar;
+                    cout << hex << tempChar << endl;
+                    columnVec.push_back(tempChar);
+                    ss.clear(); //ss will not be reset by "<< tempHex"
+                    
+                    if(columnVec.size() == 4){ //4 is how many items in a column
+                        outputVector.push_back(columnVec);
+                        columnVec.clear();
+                    }
+                }
+            }
+            
+        }
+        
+        if (outputVector.size() != 4){
+            cout << outputVector.size() << endl;
+            throw 2;
+        } 
+        
+        else {
+            return outputVector;
+        }
+        
+    } catch (int num) {
+        cout << "Invalid char Input " << num << endl;
+    }
+    
+}
+
+void viewState(vector<vector<unsigned char>> state){
+    //ONLY SUPPORTS 4x4 AT THE MOMENT
+    vector<unsigned char> columnVector1 = state[0];
+    vector<unsigned char> columnVector2 = state[1];
+    vector<unsigned char> columnVector3 = state[2];
+    vector<unsigned char> columnVector4 = state[3];
+    
+    cout << "State:" << endl;
+    
+    //this is difficult due to the fact it functionally goes by columns and not rows, so we can't just print columns.
+    vector<unsigned char>::iterator it1 = columnVector1.begin();
+    vector<unsigned char>::iterator it2 = columnVector2.begin();
+    vector<unsigned char>::iterator it3 = columnVector3.begin();
+    vector<unsigned char>::iterator it4 = columnVector4.begin();
+    
+    for (int i = 0; i < 4; i++){ 
+        
+        printf("%02x ", (unsigned int)(unsigned char)*it1);
+        printf("%02x ", (unsigned int)(unsigned char)*it2);
+        printf("%02x ", (unsigned int)(unsigned char)*it3);
+        printf("%02x \n", (unsigned int)(unsigned char)*it4);
+        
+        it1++;
+        it2++;
+        it3++;
+        it4++;
+    }
+
+    cout << '\n';
+}
+
+string decToHexa(int n)
+{
+    char hexaDeciNum[100];
+    int i = 0;
+    string str1;
+    while (n != 0) {
+        int temp = 0;
+        temp = n % 16;
+        if (temp < 10) {
+            hexaDeciNum[i] = temp + 48;
+            i++;
+        }
+        else {
+            hexaDeciNum[i] = temp + 55;
+            i++;
+        }
+ 
+        n = n / 16;
+    }
+    for (int j = i - 1; j >= 0; j--){
+        std::stringstream ss;
+        ss << hexaDeciNum[j];
+        std::string out_string = ss.str();
+        str1 = str1 + out_string;
+    }
+    return str1;
+}
+
+string generateIV(){
+    char output[2];
+	int counter=0;
+	string m = "";
+	srand(time(0));
+	string n;
+	char arr1[36]={'9','8','7','6','5','4','3','2','1','0','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
+	while(counter<16){
+	int arb = arr1[rand() % 36];
+	n = decToHexa(arb);
+   	m = m + n;
+   	n="";
+  	counter++;
+    }
+    cout << m << endl;
+    cout << m.size() << endl;
+    return m;
+}
 
     
     
 int main()
 {
-   
+   string iv;
+    iv = generateIV();
+    viewState(insert128Hex("6bc1bee22e409f96e93d7e117393172a"));
+
     /*
     //Addition (4.1) test as expressed in the AES Publication
     unsigned char poly1 = 0b01010111;
@@ -1513,6 +1662,8 @@ int main()
     
     return 0;
 }
+
+
 
 
 
