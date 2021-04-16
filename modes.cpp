@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <iostream>
 #include <string>
@@ -8,6 +7,9 @@
 #include <algorithm>
 #include <iterator>
 #include <sstream>
+#include <chrono>
+#include <random>
+//#include <mersenne_twister_engine>
 using namespace std;
 
 unsigned char addition(unsigned char p1, unsigned char p2);
@@ -142,7 +144,7 @@ void viewPlain(vector<vector<unsigned char>> state){
     cout << '\n';
 }
 
-unsigned char decToHexa(int n)
+unsigned char decToHex(int n)
 {
     switch (n) {
   case 0:
@@ -211,8 +213,8 @@ int HexTodec(unsigned char n)
             z++;
             paddedvectors++;
         }
-        res=decToHexa(paddedentries);
-        res2=decToHexa(paddedvectors);
+        res=decToHex(paddedentries);
+        res2=decToHex(paddedvectors);
         for(int i=0;i<3;i++){
             padindicator.push_back(indicator);
         }
@@ -496,9 +498,6 @@ vector<unsigned char> rotWord(vector<unsigned char> in)
     return in;
 }
 
-//Note: this does NOT return a 4x4 state but Nb*(Nr+1) words (4 chars that are a vector)
-//However it does TAKE the cipher as a state
-//Key is the opposite demensions as the state - will always have 4 in a column, but variable amount of columns because of matrix multiplication
 vector<vector<unsigned char>> KeyExpansion(vector<vector<unsigned char>> key){
     //number of words: [Nb*(Nr+1)]
 
@@ -795,10 +794,6 @@ void printState(vector<vector<unsigned char>> state)
 }
 
 vector<vector<unsigned char>> CFBmodeEncrypt (double s, vector<vector<unsigned char>> plainText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key){
-    //plainText can be any number of bits from 1 - 128. This presents some challenges. The inner vector represents those 
-    //1-128 bit values in 8 bit unsigned characters, most significant bit as the first unsigned char in the leftmost place,
-    //just as in a state. Only this is a 1-dimentional vector and not a 2D vector for concatination/simplification of code purposes. The 2D comes in 
-    //with multiple plainTexts like 1, 2, 3 as represented in the diagram
     vector<vector<unsigned char>> tempBlock;
     vector<vector<unsigned char>> outputBlockCipher;
     vector<vector<unsigned char>> cipherTextBlock;
@@ -806,9 +801,6 @@ vector<vector<unsigned char>> CFBmodeEncrypt (double s, vector<vector<unsigned c
     int remainderInt = (int)s % 8;
     unsigned char tempChar;
     unsigned char tempChar2;
-    //cout << "Here1"<< endl;
-    //cout << ceil(s/8) << endl;
-    
     for(int i = 0; i < IV.size(); i++){
         tempBlock.push_back(IV[i]);
     }
@@ -864,11 +856,7 @@ vector<vector<unsigned char>> CFBmodeEncrypt (double s, vector<vector<unsigned c
                 //cout << "IVbits " << IVbits << endl;
             }
         }
-        //cout << "IVbits Orignial" << IVbits << endl;
-        IVbits = IVbits << s; // If s == 128, IV bits are zeroed.
-        //cout << "IVbits shift s" << IVbits << endl;
-        //cout << "IVbits shift" << IVbits << endl;
-        //concat with cipherTextBlock
+        IVbits = IVbits << s; 
         cout << "Here4"<< endl;
         for(int j = 0; j < ceil(s/8); j++){
             if(remainderInt != 0 && j == ceil(s/8)-1){
@@ -925,16 +913,6 @@ vector<vector<unsigned char>> CFBmodeEncrypt (double s, vector<vector<unsigned c
         cout << "outputblock: " << endl;
         viewState(outputBlockCipher);
         
-        // int l = plainText.size();
-        // int z = plainText[l-1].size();
-        // int z2 = plainText[l-1][z-1].size();
-        // cout << plainText[l-1][z-1].size();
-        // cout << "\n";
-        // if(!(z%4==0) or z2<4){
-        //     plainText = PaddingMethod(plainText);
-        // }
-        // cout << "\n";
-        
         for(int j = 0; j < ceil(s/8); j++){ // ceil might not work here, guess we will find out
             if(remainderInt != 0 && j == ceil(s/8)-1){
                 //note the 8-remainderInt zeros on the end are NOT part of this, they are least significant, but I am limited
@@ -965,16 +943,10 @@ vector<vector<unsigned char>> CFBmodeEncrypt (double s, vector<vector<unsigned c
         cipherTextBlock.push_back(cipherText);
         cipherText.clear();
     }
-    
-
     return cipherTextBlock;
 }
 
 vector<vector<unsigned char>> CFBmodeDecrypt (double s, vector<vector<unsigned char>> cipherText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key){
-    //plainText can be any number of bits from 1 - 128. This presents some challenges. The inner vector represents those 
-    //1-128 bit values in 8 bit unsigned characters, most significant bit as the first unsigned char in the leftmost place,
-    //just as in a state. Only this is a 1-dimentional vector and not a 2D vector for concatination/simplification of code purposes. The 2D comes in 
-    //with multiple plainTexts like 1, 2, 3 as represented in the diagram
     vector<vector<unsigned char>> tempBlock;
     vector<vector<unsigned char>> outputBlockCipher;
     vector<vector<unsigned char>> plainTextBlock;
@@ -1254,13 +1226,6 @@ vector<vector<vector<unsigned char>>> CTRmodeEncrypt (vector<vector<unsigned cha
         outCipher = Cipher(counter1,key);
         outputBlocks.push_back(outCipher); 
     
-    //alternative to incrementing counter
-    // if(counter1[3][3]==0xff){
-    //     counter1[3][3]=0x00;
-    //     counter1[3][2]++;
-    // } else {counter1[3][3]++;
-    // }
-    
     if(counter1[j][k]==0xff) {
         l=j;
         m=k;
@@ -1325,35 +1290,6 @@ vector<vector<vector<unsigned char>>> CTRmodeDecrypt (vector<vector<unsigned cha
         counter1[3][2]++;
     } else {counter1[3][3]++;
     }
-        
-    // if(counter1[j][k]==0xff) {
-    //     l=j;
-    //     m=k;
-    //     while(j>0 and counter1[j][k]==0xff){
-    //         while (k>=0 and counter1[j][k]==0xff){
-    //             counter1[j][k]=0x00;
-    //             if (k==0 and !counter1[j-1][k]==0xff){
-    //                 counter1[j][k+3]++;
-    //                 break;
-    //             }
-    //             if (counter1[j][k-1]==0xff){
-    //                 continue;
-    //             }
-    //             else{
-    //                 counter1[j][k-1]++;
-    //                 break;
-    //             }
-    //             k--;
-    //         }
-    //         j--;
-    //         k=3;
-    //     }
-    //     j=l;
-    //     k=m;
-    // }
-    // else{
-    //     counter1[3][3]++;
-    //     }
 
     }    
     for(int j = 0; j < cipherText.size(); j++){
@@ -1367,23 +1303,13 @@ vector<vector<vector<unsigned char>>> CTRmodeDecrypt (vector<vector<unsigned cha
     return outText;
 }
 
-
-
-
-
-
-
 vector<vector<unsigned char>> insert128Hex(string hexInput){
-    //should look something like: 6bc1bee22e409f96e93d7e117393172a 
-    //128/4 = 32 char
     string validChars = "0123456789abcdef";
     vector<vector<unsigned char>> outputVector;
     vector<unsigned char> columnVec;
     string tempHex = "zz"; // should only be 2 letters long
     unsigned int tempChar; // this is weird but it must be int instead of char for stringstream
     std::stringstream ss;
-    
-    //Validate input first
     try {
         if(hexInput.size()!= 32){
             throw 3;
@@ -1435,7 +1361,7 @@ vector<vector<unsigned char>> insert128Hex(string hexInput){
     
 }
 
-void viewState(vector<vector<unsigned char>> state){
+void viewState2(vector<vector<unsigned char>> state){
     //ONLY SUPPORTS 4x4 AT THE MOMENT
     vector<unsigned char> columnVector1 = state[0];
     vector<unsigned char> columnVector2 = state[1];
@@ -1444,7 +1370,6 @@ void viewState(vector<vector<unsigned char>> state){
     
     cout << "State:" << endl;
     
-    //this is difficult due to the fact it functionally goes by columns and not rows, so we can't just print columns.
     vector<unsigned char>::iterator it1 = columnVector1.begin();
     vector<unsigned char>::iterator it2 = columnVector2.begin();
     vector<unsigned char>::iterator it3 = columnVector3.begin();
@@ -1523,72 +1448,15 @@ string generateIV(){
     
 int main()
 {
-   string iv;
-    iv = generateIV();
-    viewState(insert128Hex(iv));
-
-    /*
-    //Addition (4.1) test as expressed in the AES Publication
-    unsigned char poly1 = 0b01010111;
-    polyStringOut(poly1);
-    unsigned char poly2 = 0b10000011;
-    polyStringOut(poly2);
+//   string iv;
+//     iv = generateIV();
+//     viewState(insert128Hex(iv));
     
-    unsigned char addAnswer = addition(poly1, poly2);
-    std::bitset<8> binaryAddAnswer;
-    for(int i = 7; i >= 0; i--){
-        binaryAddAnswer[i] = ((addAnswer >> i) & 1);
-    }
-    polyStringOut(addAnswer);
-    cout << binaryAddAnswer << endl;
-    cout << "Should be: 11010100" << endl;
-    
-    //Multiplication (4.2) test as expressed in the AES Publication
-    unsigned char multAnswer = multiply(poly1, poly2);
-    std::bitset<8> binaryMultAnswer;
-    for(int i = 7; i >= 0; i--){
-        binaryMultAnswer[i] = ((multAnswer >> i) & 1);
-    }
-    polyStringOut(multAnswer);
-    cout << binaryMultAnswer << endl;
-    cout << "Should be: 11000001" << endl;
-    */
-    
-    //MixColumns() test - will also be testing the modPro function
-    //See Appendix B for first MixColumns before and after, before is previous at ShiftRows
-    
-    //I don't know the best way to assign space numbers I wrote a function above
-    //vector<vector<unsigned char>> state = assignInput(0xd4,0xbf,0x5d,0x30,0xe0,0xb4,0x52,0xae,0xb8,0x41,0x11,0xf1,0x1e,0x27,0x98,0xe5);
-    
-    //vector<vector<unsigned char>> input = assignInput(0x95,0x65,0xfd,0xf3,0x90,0xfb,0xb1,0x92,0x89,0x67,0xa6,0x70,0xc3,0xc9,0x6e,0xff);
-    
-    
-    /*viewState(input);
-    
-    vector<vector<unsigned char>> output = MixColumns(input);
-    
-    viewState(output);
-    
-    vector<vector<unsigned char>> reverse = invMixColumns(output);
-    viewState(reverse);*/
-    /*vector<vector<unsigned char>> state = assignInput(0x32, 0x43, 0xf6, 0xa8,0x88,0x5a,0x30,0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34);
-    vector<vector<unsigned char>>  input = assignInput(0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c);
-    viewState(input);
-    vector<vector<unsigned char>> output = AddRoundKey(state, 0, KeyExpansion(input));
-    viewState(output);*/
-    
-    //Cipher testing
-    
-    /*vector<vector<unsigned char>> state = assignInput(0x32, 0x43, 0xf6, 0xa8,0x88,0x5a,0x30,0x8d,0x31,0x31,0x98,0xa2,0xe0,0x37,0x07,0x34);
-    vector<vector<unsigned char>> input = assignInput(0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c);
-    
-    viewState(state);
-    viewState(input);
-    
-    vector<vector<unsigned char>> output = Cipher(state,input);
-    vector<vector<unsigned char>> invCipherOut = invCipher(output,input);
-    viewState(invCipherOut);*/
-    
+    vector<vector<unsigned char>> ct1;
+    string ct2;
+    ct2 = generateIV();
+    ct1 = insert128Hex(ct2);
+    viewState2(insert128Hex(ct2));
     //MODE testing
     vector<vector<unsigned char>> key = assignInput(0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c);
     vector<vector<unsigned char>> IV = assignInput(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f);
@@ -1608,63 +1476,18 @@ int main()
     vector<vector<vector<unsigned char>>> cipherText1 = {{{0x87, 0x4d, 0x61, 0x91}, {0xb6, 0x20, 0xe3, 0x26}, {0x1b, 0xef, 0x68, 0x64}, {0x99, 0x0d, 0xb6, 0xce}}, 
         {{0x98, 0x06, 0xf6, 0x6b}, {0x79, 0x70, 0xfd, 0xff}, {0x86, 0x17, 0x18, 0x7b}, {0xb9, 0xff, 0xfd, 0xff}}, {{0x5a, 0xe4, 0xdf, 0x3e}, {0xdb, 0xd5, 0xd3, 0x5e}, 
         {0x5b, 0x4f, 0x09, 0x02}, {0x0d, 0xb0, 0x3e, 0xab}}, {{0x1e, 0x03, 0x1d, 0xda}, {0x2f, 0xbe, 0x03, 0xd1}, {0x79, 0x21, 0x70, 0xa0}, {0xf3, 0x00, 0x9c, 0xee}}};
-   
-    //vector<vector<vector<unsigned char>>> encrypt = CBCmodeEncrypt(plain, IV, key);
     
-    // viewState(encrypt[0]);
-    // viewState(encrypt[1]);
-    // viewState(encrypt[2]);
-    // viewState(encrypt[3]);
-    // viewState(encrypt[4]);
+    vector<vector<vector<unsigned char>>> encrypt = CTRmodeEncrypt(ct1,plainText,key);
+    viewState(encrypt[0]);
+    viewState(encrypt[1]);
+    viewState(encrypt[2]);
+    viewState(encrypt[3]);
     
-    //vector<vector<vector<unsigned char>>> decrypt = CBCmodeDecrypt(encrypt, IV, key);
-    
-    // viewState(decrypt[0]);
-    // viewState(decrypt[1]);
-    // viewState(decrypt[2]);
-    //viewState(decrypt[3]);
-    //viewState(decrypt[4]);
-    
-    //CFB
-    //vector<vector<unsigned char>> encrypt1 = CFBmodeEncrypt(1, plainText1, IV, key);
-    //vector<vector<unsigned char>> decrypt1 = CFBmodeDecrypt(1, encrypt1, IV, key);
-    
-    //vector<vector<unsigned char>> encrypt2 = CFBmodeEncrypt(8, plainText2, IV, key);
-    //vector<vector<unsigned char>> decrypt2 = CFBmodeDecrypt(8, encrypt2, IV, key);
-    
-    //vector<vector<unsigned char>> encrypt3 = CFBmodeEncrypt(128, plainText3, IV, key);
-    //vector<vector<unsigned char>> decrypt3 = CFBmodeDecrypt(128, encrypt3, IV, key);
-    
-    //OFB 
-    /*vector<vector<vector<unsigned char>>> encryptOFB = OFBmodeEncrypt(plainText, IV, key);
-    
-    viewState(encryptOFB[0]);
-    viewState(encryptOFB[1]);
-    viewState(encryptOFB[2]);
-    viewState(encryptOFB[3]);
-    
-    vector<vector<vector<unsigned char>>> decryptOFB = OFBmodeDecrypt(encryptOFB, IV, key);
-    
-    viewState(decryptOFB[0]);
-    viewState(decryptOFB[1]);
-    viewState(decryptOFB[2]);
-    viewState(decryptOFB[3]);*/
-    
-    
-    //ECB with padding test
-    //vector<vector<vector<unsigned char>>> encrypt = ECBmodeEncrypt(plain,key);
-    
-    // viewState(encrypt[0]);
-    // viewState(encrypt[1]);
-    // viewState(encrypt[2]);
-    // viewState(encrypt[3]);
-    //viewState(encrypt[4]);
-    
-    //vector<vector<vector<unsigned char>>> decrypt = ECBmodeDecrypt(encrypt, key);
-    // viewState(decrypt[0]);
-    // viewState(decrypt[1]);
-    // viewState(decrypt[2]);
-    //viewState(decrypt[3]);
+    vector<vector<vector<unsigned char>>> decrypt = CTRmodeDecrypt(ct1,encrypt, key);
+    viewState(decrypt[0]);
+    viewState(decrypt[1]);
+    viewState(decrypt[2]);
+    viewState(decrypt[3]);
     
     return 0;
 }
