@@ -17,6 +17,7 @@ private:
 	int Nb = 4; // should always be 4 
 	int Nk = 4; // or 6, 8 - corresponds to number of 32bit words in the cipher
 	int Nr = Nb + Nk + 2;
+	int b = 32 * Nb ; //number of bits in a block
 
 	vector<vector<unsigned char>> sbox = 
 	    {
@@ -40,6 +41,8 @@ private:
 	    };
 
 	vector<vector<unsigned char>> insert128Hex(string hexInput);
+	string State::validateStringCut(string hexString);
+	void String::validateVect(vector<vector<unsigned char>> vectInput);
 	string hexOutput(vector<vector<unsigned char>> vectInput);
 	void checkValidState();
 
@@ -66,6 +69,8 @@ public:
 	State();
 	State(string hexInput);
 	State(string hexInput, int inputNk);
+	State(vector<vector<unsigned char>> input);
+	State(vector<vector<unsigned char>> input, int inputNk);
 
 	vector<vector<unsigned char>> getCurrentStateVect();
 	void setCurrentStateVect(vector<vector<unsigned char>> inputVect);

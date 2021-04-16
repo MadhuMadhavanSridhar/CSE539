@@ -11,6 +11,7 @@
 using namespace std;
 
 //Takes a HexString of 32char
+
 vector<vector<unsigned char>> State::insert128Hex(string hexInput){
 	//should look something like: 6bc1bee22e409f96e93d7e117393172a 
     //128/4 = 32 char
@@ -23,11 +24,10 @@ vector<vector<unsigned char>> State::insert128Hex(string hexInput){
     
     //Validate input first
     try {
-        if(hexInput.size()!= 32){
-            throw 3;
-        }
+
+    	hexInput = validateStringCut(hexInput);
         
-        for(int i = 0; i < 32; i++){
+        for(int i = 0; i < hexInput.size(); i++){
             
             if(validChars.find(hexInput[i]) == -1){
                 throw 1;
@@ -37,6 +37,21 @@ vector<vector<unsigned char>> State::insert128Hex(string hexInput){
                 if(i % 2 == 0){
                     tempHex[0] = hexInput[i];
                     cout << tempHex[0] << endl;
+
+                    if(i == (hexInput.size()-1)){//PROBlEM?
+                    	tempHex[1] = "0";
+
+                    	ss << tempHex;
+                    	ss >> hex >> tempChar;
+                    	cout << hex << tempChar << endl;
+                    	columnVec.push_back(tempChar);
+                    	ss.str("");
+                    	ss.clear(); //ss will not be reset by "<< tempHex"
+
+                    	//this neceessiarily will be the last one
+                        outputVector.push_back(columnVec);
+                        columnVec.clear();
+                    }
                 }
                 
                 else {
@@ -50,7 +65,7 @@ vector<vector<unsigned char>> State::insert128Hex(string hexInput){
                     ss.str("");
                     ss.clear(); //ss will not be reset by "<< tempHex"
                     
-                    if(columnVec.size() == 4){ //4 is how many items in a column
+                    if(columnVec.size() == 4 || i == hexInput.size()-1){ //4 is how many items in a column max, but if at the end it needs to push
                         outputVector.push_back(columnVec);
                         columnVec.clear();
                     }
@@ -58,11 +73,6 @@ vector<vector<unsigned char>> State::insert128Hex(string hexInput){
             }
             
         }
-        
-        if (outputVector.size() != 4){
-            cout << outputVector.size() << endl;
-            throw 2;
-        } 
         
         else {
             return outputVector;
@@ -73,16 +83,69 @@ vector<vector<unsigned char>> State::insert128Hex(string hexInput){
     }
 }
 
+string State::validateStringCut(string hexString){
+	string cutString = "";
+	try {
+
+    	if(hexString.size() > 34){
+            throw 3; //too big
+        } 
+
+    	if(hexString[0] == "0" && hexString[1] == "x"){
+    		for (int i = 2; i < hexString.size() ; i++){
+    			cutString += hexString[i];
+    		}
+    		hexStrOut = cutString;
+    	}
+
+    	if(hexString.size() > 32){
+    		throw 3; //too big
+    	}
+
+    	return hexStrOut;
+
+    } catch (int num) {
+        cout << "Invalid Input For the state" << num << endl;
+    }
+}
+
+void String::validateVect(vector<vector<unsigned char>> vectInput){ // THIS IS VALIDATING IT's 4x4 OR LESS
+	int count = 0;
+	int count2 = 0;
+
+	try{
+		for(int i = 0; i < vectInput.size(); i++){
+			count++;
+
+			for (int j = 0; j < vectInput[i].size(); j++){
+				count2++;
+			}
+
+			if(count2 > 4){
+				throw 7;
+			} else {
+				count2 = 0;
+			}
+
+		}
+
+		if(count > 4){
+			throw 8;
+		} else {
+			count = 0;
+		}
+	}
+}
+
 //this might not work yet ???
 string State::hexOutput(vector<vector<unsigned char>> vectInput){
 	string output = "";
 	string tempString = "";
-	checkValidState();
 	stringstream ss;
 	unsigned int tempChar;
 
-	for (int i = 0; i < 4;i++){
-		for(int j = 0; j < 4; j++){
+	for (int i = 0; i < vectInput.size();i++){
+		for(int j = 0; j < vectInput[i].size(); j++){
 			tempChar = vectInput[i][j];
 			ss << hex << tempChar;
 			ss >> tempString;
@@ -94,7 +157,7 @@ string State::hexOutput(vector<vector<unsigned char>> vectInput){
 	return output;
 }
 
-void State::checkValidState(){ //Validate for each step
+void State::checkValidState(){ //Validate for each step, this is checking that if it's not a full 32 hex chars it's at least padded.
 	try{
 		//should be 4x4, that's what we're checking.
 		for(int i = 0; i <=4; i++){ // I AM including the index 4 to make sure it's null
@@ -266,6 +329,7 @@ void State::MixColumns(){ //Adapted
     }
     
     currentState = newState;
+    currentStateString = hexOutput(currentState);
 }
 
 void State::invMixColumns(){ //Adapted
@@ -289,6 +353,7 @@ void State::invMixColumns(){ //Adapted
     }
     
     currentState = newinvState;
+    currentStateString = hexOutput(currentState);
 }
 
 vector<unsigned char> State::subWord(vector<unsigned char> in)
@@ -344,7 +409,7 @@ vector<vector<unsigned char>> State::KeyExpansion(vector<vector<unsigned char>> 
         if(i % Nk == 0){
             Rcon.clear();
             int tempInt = pow(2, (i/Nk - 1));
-            if (i == 0x24){ // Sorry I had to hard - code these, I don't know where these numbers are coming from.
+            if (i == 0x24){ //when it overloads 
                 tempInt = 0x1b;
             } else if (i == 0x28){
                 tempInt = 0x36;
@@ -378,9 +443,10 @@ void State::AddRoundKey(int rround, vector<vector<unsigned char>> KeyExpansion){
     for(int i = 0; i < Nb; i++){
         currentState[i] = addCoef(currentState[i], KeyExpansion[l + i]);
     }
+    currentStateString = hexOutput(currentState);
 }
 
-void State::invAddRoundKey(void, int rround, vector<vector<unsigned char>> KeyExpansion){
+void State::invAddRoundKey(int rround, vector<vector<unsigned char>> KeyExpansion){
     AddRoundKey(rround, KeyExpansion);
 }
 
@@ -399,6 +465,8 @@ void State::subBytes()
             //cout << "entry is " << hex << (int) entry << " x is " << hex << (int) x << " y is " << hex << (int) y << " box is " << hex << (int) sbox[x][y] << '\n';
         }
     }
+
+    currentStateString = hexOutput(currentState);
 }
 
 void State::invSubBytes()
@@ -431,6 +499,7 @@ void State::invSubBytes()
             currentState[i][j] = entry;
         }
     }
+    currentStateString = hexOutput(currentState);
 }
 
 void State::ShiftRows(){
@@ -456,6 +525,7 @@ void State::ShiftRows(){
 
     }
     currentState = resultingState;
+    currentStateString = hexOutput(currentState);
 }
 
 void State::invShiftRows(){
@@ -478,52 +548,107 @@ void State::invShiftRows(){
     }
     
     currentState = resultingState;
+    currentStateString = hexOutput(currentState);
 }
 
-State::State(){
+
+//public
+State::State(){ //really shouldn't use for much
 	currentState = {{0x00, 0x00, 0x00, 0x00}, {0x00, 0x00, 0x00, 0x00}, 
 	{0x00, 0x00, 0x00, 0x00}, {0x00, 0x00, 0x00, 0x00}};
+	currentStateString = hexOutput(currentState);
 
 }
 
 State::State(string hexInput){
-	currentStateString = hexInput;
-
-
+	currentStateString = validateStringCut(hexInput);
+	currentState = insert128Hex(hexInput);
 }
 
 State::State(string hexInput, int inputNk){
-	currentStateString = hexInput;
+	currentStateString = validateStringCut(hexInput);
+	currentState = insert128Hex(hexInput);
 	try{
 		if((inputNk != 4) && (inputNk != 6) && (inputNk != 8)){
 			throw 6;
 		}
+		Nk = inputNk;
 	} catch (...) {
-		
-	}
 
+	}
 }
 
 State::State(vector<vector<unsigned char>> input){
-
-
+	validateVect(input);
+	currentStateString = hexOutput(input);
+	currentState = input;
 }
 
 State::State(vector<vector<unsigned char>> input, int inputNk){
-	
+	validateVect(input);
+	currentStateString = hexOutput(input);
+	currentState = input;
+	try{
+		if((inputNk != 4) && (inputNk != 6) && (inputNk != 8)){
+			throw 6;
+		}
+		Nk = inputNk;
+	} catch (...) {
+
+	}
 }
 
+vector<vector<unsigned char>> State::getCurrentStateVect(){
+	return currentState;
+}
 
-vector<vector<unsigned char>> State::getCurrentStateVect();
-void State::setCurrentStateVect(vector<vector<unsigned char>> inputVect);
+void State::setCurrentStateVect(vector<vector<unsigned char>> inputVect){
+	validateVect(inputVect);
+	currentState = inputVect;
+	currentStateString = hexOutput(currentState);
+}
 
-string State::getCurrentStateString();
-void State::setCurrentStateString(string hexInput);
+string State::getCurrentStateString(){
+	return currentStateString;
+}
 
-void State::viewCurrentState();
+void State::setCurrentStateString(string hexInput){
+	currentStateString = validateStringCut(hexInput);
+	currentState = insert128Hex(currentStateString);
 
+}
 
+void State::viewCurrentState(){
+	 //ONLY SUPPORTS 4x4 AT THE MOMENT, should ONLY need that
+	checkValidState(); // must be padded, must not throw exception.
+    vector<unsigned char> columnVector1 = state[0];
+    vector<unsigned char> columnVector2 = state[1];
+    vector<unsigned char> columnVector3 = state[2];
+    vector<unsigned char> columnVector4 = state[3];
+    
+    cout << "State:" << endl;
+    
+    //this is difficult due to the fact it functionally goes by columns and not rows, so we can't just print columns.
+    vector<unsigned char>::iterator it1 = columnVector1.begin();
+    vector<unsigned char>::iterator it2 = columnVector2.begin();
+    vector<unsigned char>::iterator it3 = columnVector3.begin();
+    vector<unsigned char>::iterator it4 = columnVector4.begin();
+    
+    for (int i = 0; i < 4; i++){ 
+        
+        printf("%02x ", (unsigned int)(unsigned char)*it1);
+        printf("%02x ", (unsigned int)(unsigned char)*it2);
+        printf("%02x ", (unsigned int)(unsigned char)*it3);
+        printf("%02x \n", (unsigned int)(unsigned char)*it4);
+        
+        it1++;
+        it2++;
+        it3++;
+        it4++;
+    }
 
+    cout << '\n';
+}
 
 void State::Cipher(vector<vector<unsigned char>> cipherKey){
     
