@@ -16,6 +16,7 @@ vector<vector<vector<unsigned char>>> block;
 vector<string> strBlock;
 vector<vector<unsigned char>> IV;
 vector<vector<unsigned char>> CFBblock;
+vector<vector<unsigned char>> counter1;
 
 
 
@@ -178,25 +179,127 @@ void convertCFBBlockTo(){
 
 }
 void convertBlockToVectString(){
-	
+
 }
 
+vector<vector<unsigned char>> State::convertStringtoVect(string hexInput){
+	//should look something like: 6bc1bee22e409f96e93d7e117393172a 
+    //128/4 = 32 char
+    string validChars = "0123456789abcdef";
+    vector<vector<unsigned char>> outputVector;
+    vector<unsigned char> columnVec;
+    string tempHex = "zz"; // should only be 2 letters long
+    unsigned int tempChar; // this is weird but it must be int instead of char for stringstream
+    std::stringstream ss;
+    
+    //Validate input first
+    try {
+
+    	hexInput = validateStringCut(hexInput);
+        
+        for(int i = 0; i < hexInput.size(); i++){
+            
+            if(validChars.find(hexInput[i]) == -1){
+                throw 1;
+            }
+            
+            else {
+                if(i % 2 == 0){
+                    tempHex[0] = hexInput[i];
+                    cout << tempHex[0] << endl;
+
+                    if(i == (hexInput.size()-1)){//PROBlEM?
+                    	tempHex[1] = "0";
+
+                    	ss << tempHex;
+                    	ss >> hex >> tempChar;
+                    	cout << hex << tempChar << endl;
+                    	columnVec.push_back(tempChar);
+                    	ss.str("");
+                    	ss.clear(); //ss will not be reset by "<< tempHex"
+
+                    	//this neceessiarily will be the last one
+                        outputVector.push_back(columnVec);
+                        columnVec.clear();
+                    }
+                }
+                
+                else {
+                    tempHex[1] = hexInput[i]; 
+                    cout << tempHex << endl;
+                    
+                    ss << tempHex;
+                    ss >> hex >> tempChar;
+                    cout << hex << tempChar << endl;
+                    columnVec.push_back(tempChar);
+                    ss.str("");
+                    ss.clear(); //ss will not be reset by "<< tempHex"
+                    
+                    if(columnVec.size() == 4 || i == hexInput.size()-1){ //4 is how many items in a column max, but if at the end it needs to push
+                        outputVector.push_back(columnVec);
+                        columnVec.clear();
+                    }
+                }
+            }
+            
+        }
+        
+        else {
+            return outputVector;
+        }
+        
+    } catch (int num) {
+        cout << "Invalid Input For the state" << num << endl;
+    }
+}
+
+string State::validateStringCut(string hexString){
+	string cutString = "";
+	try {
+
+    	if(hexString.size() > 34){
+            throw 3; //too big
+        } 
+
+    	if(hexString[0] == "0" && hexString[1] == "x"){
+    		for (int i = 2; i < hexString.size() ; i++){
+    			cutString += hexString[i];
+    		}
+    		hexStrOut = cutString;
+    	}
+
+    	if(hexString.size() > 32){
+    		throw 3; //too big
+    	}
+
+    	return hexStrOut;
+
+    } catch (int num) {
+        cout << "Invalid Input For the state" << num << endl;
+    }
+}
 
 
 
 
 //public
 Mode::Mode(){//fill with nothing I guess?
-	IV = generateIV();
+	IV = convertStringtoVect(generateIV());
+	counter1 = convertStringtoVect(generateIV());
 
 }
 
 
-Mode::Mode(vector<vector<vector<unsigned char>>> input){
+/*Mode::Mode(vector<vector<vector<unsigned char>>> input){
 	//TODO
 	//need to validate input
 	block = input;
 	IV = generateIV();
+}*/
+
+Mode::Mode(vector<string> strInput){
+	IV = convertStringtoVect(generateIV());
+	counter1 = convertStringtoVect(generateIV());
 }
 
 
@@ -351,7 +454,7 @@ void Mode::CBCmodeDecrypt (vector<vector<unsigned char>> key){
 }
 
 //THIS IS ODD AF
-void Mode::CFBmodeEncrypt (double s, vector<vector<unsigned char>> plainText, vector<vector<unsigned char>> key){
+void Mode::CFBmodeEncrypt (double s, vector<vector<unsigned char>> key){
     //plainText can be any number of bits from 1 - 128. This presents some challenges. The inner vector represents those 
     //1-128 bit values in 8 bit unsigned characters, most significant bit as the first unsigned char in the leftmost place,
     //just as in a state. Only this is a 1-dimentional vector and not a 2D vector for concatination/simplification of code purposes. The 2D comes in 
@@ -359,7 +462,10 @@ void Mode::CFBmodeEncrypt (double s, vector<vector<unsigned char>> plainText, ve
     
     //count s-bits
     //TODO this function and s
-    CFBblock = toCFBMODE(block);
+
+	//
+
+    CFBblock = convertBlockToCFB(block);
     
 
 
@@ -532,6 +638,7 @@ void Mode::CFBmodeEncrypt (double s, vector<vector<unsigned char>> plainText, ve
     
 
     CFBblock =  cipherTextBlock;
+    block = convertCFBBlockTo(CFBblock);
 }
 
 void Mode::CFBmodeDecrypt (double s, vector<vector<unsigned char>> cipherText, vector<vector<unsigned char>> key){

@@ -17,6 +17,7 @@ private:
 	vector<string> strBlock;
 	vector<vector<unsigned char>> IV;
 	vector<vector<unsigned char>> CFBblock;
+	vector<vector<unsigned char>> counter1;
 
 	unsigned char State::addition(unsigned char p1, unsigned char p2);
 	vector<unsigned char> State::addCoef(vector<unsigned char> coef1, vector<unsigned char> coef2);
@@ -26,34 +27,39 @@ private:
 
 	unsigned char decToHexa(int n);
 	int HexTodec(unsigned char n);
+
 	string generateIV();
 
 	void convertBlockToCFB();
 	void convertCFBBlockTo();
 	void convertBlockToVectString();
 
+	vector<vector<unsigned char>> convertStringtoVect(string hexInput);
+	string State::validateStringCut(string hexString);
+
+
 
 
 
 public:
 	Mode();
-	Mode(vector<vector<vector<unsigned char>>> input);
 	Mode(vector<string> strInput);
 
 	void regenerateIV();
-	vector<vector<vector<unsigned char>>> ECBmodeEncrypt (vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> ECBmodeDecrypt (vector<vector<vector<unsigned char>>> cipherText,vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> CBCmodeEncrypt (vector<vector<vector<unsigned char>>> inputBlocks, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> CBCmodeDecrypt (vector<vector<vector<unsigned char>>> cipherText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key);
-	vector<vector<unsigned char>> CFBmodeEncrypt (double s, vector<vector<unsigned char>> plainText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key);
-	vector<vector<unsigned char>> CFBmodeDecrypt (double s, vector<vector<unsigned char>> cipherText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> OFBmodeEncrypt (vector<vector<vector<unsigned char>>> plainText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> OFBmodeDecrypt (vector<vector<vector<unsigned char>>> cipherText, vector<vector<unsigned char>> IV, vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> CTRmodeEncrypt (vector<vector<unsigned char>> counter1,vector<vector<vector<unsigned char>>> inputBlocks,vector<vector<unsigned char>> key);
-	vector<vector<vector<unsigned char>>> CTRmodeDecrypt (vector<vector<unsigned char>> counter1,vector<vector<vector<unsigned char>>> cipherText,vector<vector<unsigned char>> key);
+	void ECBmodeEncrypt (vector<vector<unsigned char>> key);
+	void ECBmodeDecrypt (vector<vector<unsigned char>> key);
+	void CBCmodeEncrypt (vector<vector<unsigned char>> key);
+	void CBCmodeDecrypt (vector<vector<unsigned char>> key);
+	void CFBmodeEncrypt (double s, vector<vector<unsigned char>> plainText, vector<vector<unsigned char>> key);
+	void CFBmodeDecrypt (double s, vector<vector<unsigned char>> cipherText, vector<vector<unsigned char>> key);
+	void OFBmodeEncrypt (vector<vector<vector<unsigned char>>> plainText, vector<vector<unsigned char>> key);
+	void OFBmodeDecrypt (vector<vector<vector<unsigned char>>> cipherText, vector<vector<unsigned char>> key);
+	void CTRmodeEncrypt (vector<vector<unsigned char>> key);
+	void CTRmodeDecrypt (vector<vector<unsigned char>> key);
     
     vector<vector<vector<unsigned char>>> getBlock();
     void setBlock();
+    vector<vector<unsigned char>> getIV();
     vector<string> getCutUpBlock();
     void viewCutBlocks();
 

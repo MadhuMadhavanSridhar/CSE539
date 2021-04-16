@@ -134,6 +134,8 @@ void String::validateVect(vector<vector<unsigned char>> vectInput){ // THIS IS V
 		} else {
 			count = 0;
 		}
+	} catch (...){
+		
 	}
 }
 
