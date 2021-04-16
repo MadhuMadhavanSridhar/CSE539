@@ -1498,20 +1498,26 @@ string generateIV(){
     char output[2];
 	int counter=0;
 	string m = "";
-	srand(time(0));
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::mt19937 generator (seed); 
+    unsigned long long res;
+    unsigned long long y = 7654321;
 	string n;
 	char arr1[36]={'9','8','7','6','5','4','3','2','1','0','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'};
 	while(counter<16){
-	int arb = arr1[rand() % 36];
+	res = generator();
+	int temp = res/y;
+	int arb = arr1[temp % 36];
 	n = decToHexa(arb);
+	n[0]=tolower(n[0]);
+	n[1]=tolower(n[1]);
    	m = m + n;
-   	n="";
+   	n = "";
   	counter++;
     }
-    cout << m << endl;
-    cout << m.size() << endl;
     return m;
 }
+
 
     
     
@@ -1519,7 +1525,7 @@ int main()
 {
    string iv;
     iv = generateIV();
-    viewState(insert128Hex("6bc1bee22e409f96e93d7e117393172a"));
+    viewState(insert128Hex(iv));
 
     /*
     //Addition (4.1) test as expressed in the AES Publication
