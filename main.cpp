@@ -1,5 +1,5 @@
 #include "Mode.h"
-#include "State.h"
+#include "AESState.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -10,79 +10,11 @@
 #include <algorithm>
 #include <iterator>
 #include <sstream>
+#include <chrono>
+#include <random>
 using namespace std;
 
 
-
-/*For all of the modes in this recommendation, the plaintext must be represented as a sequence of
-bit strings; the requirements on the lengths of the bit strings vary according to the mode: 
-*/
-
-/*For the ECB and CBC modes, the total number of bits in the plaintext must be a multiple of the
-block size, b; in other words, for some positive integer n, the total number of bits in the plaintext
-must be nb. The plaintext consists of a sequence of n bit strings, each with bit length b. The bit
-strings in the sequence are called data blocks, and the plaintext is denoted P1, P2,…, P .*/
-
-vector<vector<vector<unsigned char>>> inputTextToBlocks(string input){ // the problem with this is that theres 2 hex characters to represent 1 unsigned char input char
-    unsigned char inputChar;
-    vector<unsigned char> columns;
-    vector<vector<unsigned char>> states;
-    vector<vector<vector<unsigned char>>> inputTextStateBlocks;
-    
-    int numberOfBlocks = (input.size() / b) + 1; 
-    int countForCol = 0;
-    int countForState = 0;
-    
-    for(int i = 0; i < numberOfBlocks * b; i++){
-        if(!input[i]){ // this might not work? might have to be == NULL
-            inputChar = 0x00;
-        } else {
-            inputChar = input[i];
-        }
-        
-        columns.push_back(inputChar);
-        countForCol++;
-        
-        if(countForCol == Nb){
-            states.push_back(columns);
-            columns.clear();
-            countForCol = 0;
-            countForState++;
-        }
-        
-        if(countForState == Nk){
-            inputTextStateBlocks.push_back(states);
-            states.clear();
-            countForState = 0;
-        }
-        
-    }
-    
-}
-
-
-
-
-void viewPlain(vector<vector<unsigned char>> state){
-    //ONLY SUPPORTS 4x4 AT THE MOMENT
-    int l = state.size();
-    
-    cout << "State:" << endl;
-    
-    //this is difficult due to the fact it functionally goes by columns and not rows, so we can't just print columns.
-    
-    
-    for (int i = 0; i < l; i++){
-        vector<unsigned char>::iterator it1 = state[i].begin();
-        int z = state[i].size();
-        for (int j=0;j<z;j++){
-            printf("%02x ", (unsigned int)(unsigned char)*it1);
-            it1++;
-        }
-    }
-
-    cout << '\n';
-}
 
 
 
@@ -153,8 +85,8 @@ int main()
     viewState(invCipherOut);*/
     
     //MODE testing
-    vector<vector<unsigned char>> key = assignInput(0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c);
-    vector<vector<unsigned char>> IV = assignInput(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f);
+    vector<vector<unsigned char>> key = {{0x2b, 0x7e, 0x15, 0x16}, {0x28, 0xae, 0xd2, 0xa6}, {0xab, 0xf7, 0x15, 0x88}, {0x09, 0xcf, 0x4f, 0x3c}};
+    //vector<vector<unsigned char>> IV = assignInput(0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f);
     vector<vector<vector<unsigned char>>> plainText = {{{0x6b, 0xc1, 0xbe, 0xe2}, {0x2e, 0x40, 0x9f, 0x96}, {0xe9, 0x3d, 0x7e, 0x11}, {0x73, 0x93, 0x17, 0x2a}}, 
         {{0xae, 0x2d, 0x8a, 0x57}, {0x1e, 0x03, 0xac, 0x9c}, {0x9e, 0xb7, 0x6f, 0xac}, {0x45, 0xaf, 0x8e, 0x51}}, {{0x30, 0xc8, 0x1c, 0x46}, {0xa3, 0x5c, 0xe4, 0x11}, 
         {0xe5, 0xfb, 0xc1, 0x19}, {0x1a, 0x0a, 0x52, 0xef}}, {{0xf6, 0x9f, 0x24, 0x45}, {0xdf, 0x4f, 0x9b, 0x17}, {0xad, 0x2b, 0x41, 0x7b}, {0xe6, 0x6c, 0x37, 0x10}}};
@@ -213,9 +145,60 @@ int main()
     
     
     //ECB with padding test
-    Mode myMode = Mode(plain);
+    
+    
+    vector<string> test = {"6bc1bee22e409f96e93d7e117393172a","ae2d8a571e03ac9c9eb76fac45af8e51", "30c81c46a35ce411e5fbc1191a0a52ef",
+    "f69f2445df4f9b17ad2b417be66c3710"};
+    vector<string> CFB128test = {"000102030405060708090a0b0c0d0e0f", "3b3fd92eb72dad20333449f8e83cfb4a", "c8a64537a0b3a93fcde3cdad9f1ce58b", 
+    "26751f67a3cbb140b1808cf187a4f4df"};
+    vector<string> OFBtest = {"000102030405060708090a0b0c0d0e0f","50fe67cc996d32b6da0937e99bafec60", "d9a4dada0892239f6b8b3d7680e15674", 
+    "a78819583f0308e7a6bf36b1386abf23"};
+    
+    /*Mode myMode = Mode(test);
     myMode.ECBmodeEncrypt(key);
-    vector<vector<vector<unsigned char>>> encrypt = ECBmodeEncrypt(plain,key);
+    
+    myMode.printStringVect();
+
+    myMode.ECBmodeDecrypt(key);
+
+    myMode.printStringVect();*/
+    
+    /*Mode myMode2 = Mode(test);
+    myMode2.CBCmodeEncrypt(key);
+    
+    myMode2.printStringVect();
+
+    myMode2.CBCmodeDecrypt(key);
+
+    myMode2.printStringVect();*/
+    
+    /*Mode myMode3 = Mode(CFB128test);
+    myMode3.CFBmodeEncrypt(key);
+    
+    myMode3.printStringVect();
+
+    myMode3.CFBmodeDecrypt(key);
+
+    myMode3.printStringVect();*/
+    
+    /*Mode myMode4 = Mode(OFBtest);
+    myMode4.OFBmodeEncrypt(key);
+    
+    myMode4.printStringVect();
+
+    myMode4.OFBmodeDecrypt(key);
+
+    myMode4.printStringVect();*/
+    
+    Mode myMode5 = Mode(test);
+    myMode5.CTRmodeEncrypt(key);
+    
+    myMode5.printStringVect();
+
+    myMode5.CTRmodeDecrypt(key);
+
+    myMode5.printStringVect();
+    
     
     // viewState(encrypt[0]);
     // viewState(encrypt[1]);
