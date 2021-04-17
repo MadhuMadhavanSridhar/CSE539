@@ -1285,11 +1285,35 @@ vector<vector<vector<unsigned char>>> CTRmodeDecrypt (vector<vector<unsigned cha
         
         plainText.push_back(outInvCipher);
         
-    if(counter1[3][3]==0xff){
-        counter1[3][3]=0x00;
-        counter1[3][2]++;
-    } else {counter1[3][3]++;
+     if(counter1[j][k]==0xff) {
+        l=j;
+        m=k;
+        while(j>0 and counter1[j][k]==0xff){
+            while (k>=0 and counter1[j][k]==0xff){
+                counter1[j][k]=0x00;
+                if (k==0 and !counter1[j-1][k]==0xff){
+                    counter1[j][k+3]++;
+                    break;
+                }
+                if (counter1[j][k-1]==0xff){
+                    continue;
+                }
+                else{
+                    counter1[j][k-1]++;
+                    break;
+                }
+                k--;
+            }
+            j--;
+            k=3; 
+        }
+        j=l;
+        k=m;
     }
+    else{
+        counter1[3][3]++;
+        }
+
 
     }    
     for(int j = 0; j < cipherText.size(); j++){
